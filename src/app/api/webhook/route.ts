@@ -89,10 +89,13 @@ export async function POST(req: Request) {
       const replyToken = event.replyToken;
 
       try {
+        console.log('[Step 1] Received message:', userMessage);
+
         // 1. Search FAQ in Supabase (Vector Search)
-        let embedding: number[];
         try {
-          embedding = await getEmbedding(userMessage);
+          const embedding = await getEmbedding(userMessage);
+          console.log('[Step 2] Embedding generated');
+          
           const { data: faqMatch, error } = await supabase.rpc('match_faqs', {
             query_embedding: embedding,
             match_threshold: 0.8,
@@ -100,15 +103,18 @@ export async function POST(req: Request) {
           });
 
           if (!error && faqMatch && faqMatch.length > 0) {
+            console.log('[Step 3] FAQ Hit:', faqMatch[0].answer);
             await replyMessage(replyToken, faqMatch[0].answer);
             continue;
           }
+          console.log('[Step 3] FAQ Miss or Error:', error);
         } catch (embeddingErr) {
-          console.error('Vector search failed, falling back to LLM directly');
+          console.error('[Step 3 Error] Vector search failed:', embeddingErr);
         }
 
-        // 2. Fallback to Groq with Llama-3.1-8b-instant
+        // 2. Fallback to Groq
         try {
+          console.log('[Step 4] Requesting Groq LLM...');
           const completion = await groq.chat.completions.create({
             messages: [
               { role: 'system', content: SYSTEM_PROMPT },
@@ -116,23 +122,21 @@ export async function POST(req: Request) {
             ],
             model: 'llama-3.1-8b-instant',
             max_tokens: 150,
-            temperature: 0.2, // Low temperature for consistent, stable answers
+            temperature: 0.2,
           });
 
           const aiResponse = completion.choices[0]?.message?.content || 'ขออภัยค่ะ ไม่สามารถประมวลผลได้ในขณะนี้';
+          console.log('[Step 5] Groq Response:', aiResponse);
+          
           await replyMessage(replyToken, aiResponse);
+          console.log('[Step 6] Reply sent to LINE');
         } catch (groqErr: any) {
-          console.error('[Groq API Error]:', groqErr);
-          if (groqErr.status === 429) {
-            await replyMessage(replyToken, 'ขณะนี้มีผู้ใช้งานจำนวนมาก กรุณาลองใหม่อีกครั้ง หรือติดต่อโรงเรียนโดยตรงที่เบอร์ [เบอร์โทรโรงเรียน] ค่ะ');
-          } else {
-            await replyMessage(replyToken, 'ขออภัยค่ะ ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้งนะคะ');
-          }
+          console.error('[Step 4/5 Error] Groq API Error:', groqErr);
+          await replyMessage(replyToken, 'ขออภัยค่ะ ระบบประมวลผลขัดข้อง (Groq)');
         }
 
       } catch (err) {
-        console.error('[General Error Handling Event]:', err);
-        await replyMessage(replyToken, 'เกิดข้อผิดพลาดในการประมวลผลค่ะ');
+        console.error('[CRITICAL] General Error:', err);
       }
     }
   }
