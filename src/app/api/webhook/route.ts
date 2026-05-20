@@ -2,7 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import Groq from 'groq-sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-export const runtime = 'edge';
+// Remove edge runtime for more stability with external SDKs
+// export const runtime = 'edge';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -34,17 +35,11 @@ const SYSTEM_PROMPT = `คุณคือแอดมิน AI ประจำ L
 - เว็บไซต์: [รออัปเดตเว็บไซต์]`;
 
 async function verifySignature(body: string, signature: string) {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(LINE_CHANNEL_SECRET),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['verify']
-  );
-  const signatureBin = Uint8Array.from(atob(signature), (c) => c.charCodeAt(0));
-  return await crypto.subtle.verify('HMAC', key, signatureBin, encoder.encode(body));
+  const hmac = crypto.createHmac('sha256', LINE_CHANNEL_SECRET);
+  const checkSignature = hmac.update(body).digest('base64');
+  return checkSignature === signature;
 }
+
 
 async function replyMessage(replyToken: string, text: string) {
   try {
