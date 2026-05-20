@@ -44,8 +44,18 @@ async function verifySignature(body: string, signature: string) {
 }
 
 
-async function replyMessage(replyToken: string, text: string) {
+async function replyMessage(replyToken: string, text: string, imageUrl?: string | null) {
   try {
+    const messages: any[] = [{ type: 'text', text }];
+
+    if (imageUrl) {
+      messages.push({
+        type: 'image',
+        originalContentUrl: imageUrl,
+        previewImageUrl: imageUrl
+      });
+    }
+
     const res = await fetch('https://api.line.me/v2/bot/message/reply', {
       method: 'POST',
       headers: {
@@ -54,7 +64,7 @@ async function replyMessage(replyToken: string, text: string) {
       },
       body: JSON.stringify({
         replyToken,
-        messages: [{ type: 'text', text }],
+        messages,
       }),
     });
     if (!res.ok) {
@@ -109,7 +119,7 @@ export async function POST(req: Request) {
           });
           if (!error && faqMatch && faqMatch.length > 0) {
             console.log('[DEBUG] Vector Match Found:', faqMatch[0].question);
-            await replyMessage(replyToken, faqMatch[0].answer);
+            await replyMessage(replyToken, faqMatch[0].answer, faqMatch[0].image_url);
             continue;
           }
         } catch (err) {
