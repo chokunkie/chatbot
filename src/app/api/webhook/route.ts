@@ -6,20 +6,22 @@ import crypto from 'crypto';
 // Remove edge runtime for more stability with external SDKs
 // export const runtime = 'edge';
 
+const cleanKey = (key: string | undefined) => key ? key.replace(/\s+/g, '') : '';
+
 const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  cleanKey(process.env.SUPABASE_URL),
+  cleanKey(process.env.SUPABASE_SERVICE_ROLE_KEY)
 );
 
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
+  apiKey: cleanKey(process.env.GROQ_API_KEY),
 });
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const genAI = new GoogleGenerativeAI(cleanKey(process.env.GEMINI_API_KEY));
 const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
-const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN!;
-const LINE_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET!;
+const LINE_CHANNEL_ACCESS_TOKEN = cleanKey(process.env.LINE_CHANNEL_ACCESS_TOKEN);
+const LINE_CHANNEL_SECRET = cleanKey(process.env.LINE_CHANNEL_SECRET);
 
 const SYSTEM_PROMPT = `คุณคือแอดมิน AI ประจำ LINE Official Account ของโรงเรียนทุ่งใหญ่วิทยาคม
 หน้าที่ของคุณคือตอบคำถามผู้ปกครองและนักเรียนด้วยความสุภาพ รวดเร็ว และแม่นยำ

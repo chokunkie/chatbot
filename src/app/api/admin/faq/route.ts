@@ -3,12 +3,14 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const runtime = 'edge';
 
+const cleanKey = (key: string | undefined) => key ? key.replace(/\s+/g, '') : '';
+
 const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  cleanKey(process.env.SUPABASE_URL),
+  cleanKey(process.env.SUPABASE_SERVICE_ROLE_KEY)
 );
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const genAI = new GoogleGenerativeAI(cleanKey(process.env.GEMINI_API_KEY));
 const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
 export async function POST(req: Request) {
