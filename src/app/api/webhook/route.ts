@@ -89,54 +89,46 @@ export async function POST(req: Request) {
       const replyToken = event.replyToken;
 
       try {
-        console.log('[Step 1] Received message:', userMessage);
+        console.log('[DEBUG] Received:', userMessage);
 
-        // 1. Search FAQ in Supabase (Vector Search)
+        // TEMPORARILY BYPASS VECTOR SEARCH TO TEST CONNECTIVITY
+        /*
         try {
           const embedding = await getEmbedding(userMessage);
-          console.log('[Step 2] Embedding generated');
-          
           const { data: faqMatch, error } = await supabase.rpc('match_faqs', {
             query_embedding: embedding,
             match_threshold: 0.8,
             match_count: 1,
           });
-
           if (!error && faqMatch && faqMatch.length > 0) {
-            console.log('[Step 3] FAQ Hit:', faqMatch[0].answer);
             await replyMessage(replyToken, faqMatch[0].answer);
             continue;
           }
-          console.log('[Step 3] FAQ Miss or Error:', error);
-        } catch (embeddingErr) {
-          console.error('[Step 3 Error] Vector search failed:', embeddingErr);
-        }
+        } catch (err) { console.error('Vector skip'); }
+        */
 
-        // 2. Fallback to Groq
-        try {
-          console.log('[Step 4] Requesting Groq LLM...');
-          const completion = await groq.chat.completions.create({
-            messages: [
-              { role: 'system', content: SYSTEM_PROMPT },
-              { role: 'user', content: userMessage },
-            ],
-            model: 'llama-3.1-8b-instant',
-            max_tokens: 150,
-            temperature: 0.2,
-          });
+        // 2. Direct to Groq
+        console.log('[DEBUG] Calling Groq...');
+        const completion = await groq.chat.completions.create({
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: userMessage },
+          ],
+          model: 'llama-3.1-8b-instant',
+          max_tokens: 150,
+          temperature: 0.2,
+        });
 
-          const aiResponse = completion.choices[0]?.message?.content || 'ขออภัยค่ะ ไม่สามารถประมวลผลได้ในขณะนี้';
-          console.log('[Step 5] Groq Response:', aiResponse);
-          
-          await replyMessage(replyToken, aiResponse);
-          console.log('[Step 6] Reply sent to LINE');
-        } catch (groqErr: any) {
-          console.error('[Step 4/5 Error] Groq API Error:', groqErr);
-          await replyMessage(replyToken, 'ขออภัยค่ะ ระบบประมวลผลขัดข้อง (Groq)');
-        }
+        const aiResponse = completion.choices[0]?.message?.content || 'ขออภัยค่ะ ระบบขัดข้อง';
+        console.log('[DEBUG] Groq says:', aiResponse);
+        
+        await replyMessage(replyToken, aiResponse);
+        console.log('[DEBUG] Sent to LINE!');
 
-      } catch (err) {
-        console.error('[CRITICAL] General Error:', err);
+      } catch (err: any) {
+        console.error('[FATAL ERROR]:', err.message);
+        // Try one last time to say something went wrong
+        await replyMessage(replyToken, 'แอดมินขออภัยค่ะ ระบบกำลังปรับปรุง (Error: ' + err.message + ')');
       }
     }
   }
