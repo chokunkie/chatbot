@@ -9,7 +9,7 @@ const supabase = createClient(
 );
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
 export async function POST(req: Request) {
   try {
@@ -20,7 +20,13 @@ export async function POST(req: Request) {
     }
 
     // 1. Generate Embedding using Gemini
-    const result = await embeddingModel.embedContent(question);
+    const result = await embeddingModel.embedContent({
+      content: {
+        role: "user",
+        parts: [{ text: question }]
+      },
+      outputDimensionality: 768
+    } as any);
     const embedding = result.embedding.values;
 
     // 2. Insert into Supabase

@@ -7,7 +7,7 @@ const supabase = createClient(
 );
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
 const dummyFaqs = [
   {
@@ -28,7 +28,13 @@ async function seed() {
   console.log('Seeding FAQs with Gemini Embeddings...');
   
   const faqsWithEmbeddings = await Promise.all(dummyFaqs.map(async (faq) => {
-    const result = await embeddingModel.embedContent(faq.question);
+    const result = await embeddingModel.embedContent({
+      content: {
+        role: "user",
+        parts: [{ text: faq.question }]
+      },
+      outputDimensionality: 768
+    } as any);
     return {
       ...faq,
       embedding: result.embedding.values

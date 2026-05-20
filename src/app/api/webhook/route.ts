@@ -16,7 +16,7 @@ const groq = new Groq({
 });
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
 const LINE_CHANNEL_ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN!;
 const LINE_CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET!;
@@ -65,7 +65,13 @@ async function replyMessage(replyToken: string, text: string) {
 
 async function getEmbedding(text: string): Promise<number[]> {
   try {
-    const result = await embeddingModel.embedContent(text);
+    const result = await embeddingModel.embedContent({
+      content: {
+        role: "user",
+        parts: [{ text }]
+      },
+      outputDimensionality: 768
+    } as any);
     return result.embedding.values;
   } catch (err) {
     console.error('[Gemini Embedding Error]:', err);
@@ -91,8 +97,7 @@ export async function POST(req: Request) {
       try {
         console.log('[DEBUG] Received:', userMessage);
 
-        // TEMPORARILY BYPASS VECTOR SEARCH TO TEST CONNECTIVITY
-        /*
+        // 1. Vector Search (RAG)
         try {
           const embedding = await getEmbedding(userMessage);
           const { data: faqMatch, error } = await supabase.rpc('match_faqs', {
@@ -101,11 +106,13 @@ export async function POST(req: Request) {
             match_count: 1,
           });
           if (!error && faqMatch && faqMatch.length > 0) {
+            console.log('[DEBUG] Vector Match Found:', faqMatch[0].question);
             await replyMessage(replyToken, faqMatch[0].answer);
             continue;
           }
-        } catch (err) { console.error('Vector skip'); }
-        */
+        } catch (err) {
+          console.error('[Vector search error]:', err);
+        }
 
         // 2. Direct to Groq
         console.log('[DEBUG] Calling Groq...');
