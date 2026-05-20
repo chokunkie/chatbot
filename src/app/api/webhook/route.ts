@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import Groq from 'groq-sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import crypto from 'crypto';
 
 // Remove edge runtime for more stability with external SDKs
 // export const runtime = 'edge';
