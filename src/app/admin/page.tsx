@@ -15,19 +15,13 @@ export default function AdminDashboard() {
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchFaqs();
-    const savedPassword = localStorage.getItem('admin_password') || '';
-    setAdminPassword(savedPassword);
   }, []);
 
-  const handlePasswordChange = (val: string) => {
-    setAdminPassword(val);
-    localStorage.setItem('admin_password', val);
-  };
+
 
   async function fetchFaqs() {
     const { data, error } = await supabase
@@ -40,10 +34,6 @@ export default function AdminDashboard() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!adminPassword) {
-      alert('กรุณากรอกรหัสผ่านผู้ดูแลระบบ');
-      return;
-    }
     setLoading(true);
 
     try {
@@ -51,7 +41,6 @@ export default function AdminDashboard() {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'x-admin-password': adminPassword
         },
         body: JSON.stringify({ question, answer, image_url: imageUrl }),
       });
@@ -74,19 +63,13 @@ export default function AdminDashboard() {
   }
 
   async function handleDelete(id: number) {
-    if (!adminPassword) {
-      alert('กรุณากรอกรหัสผ่านผู้ดูแลระบบเพื่อดำเนินการลบ');
-      return;
-    }
     if (!confirm('ยืนยันที่จะลบคำถามนี้หรือไม่?')) return;
     setLoading(true);
 
     try {
       const res = await fetch(`/api/admin/faq?id=${id}`, {
         method: 'DELETE',
-        headers: { 
-          'x-admin-password': adminPassword
-        },
+        headers: {},
       });
 
       if (res.ok) {
@@ -107,21 +90,6 @@ export default function AdminDashboard() {
     <div className="max-w-4xl mx-auto p-8 font-sans">
       <h1 className="text-3xl font-bold mb-8 text-gray-800">ระบบจัดการ FAQ โรงเรียน</h1>
       
-      {/* ส่วนกรอกรหัสผ่านเพื่อความปลอดภัย */}
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-amber-800 font-semibold flex items-center gap-2">🔒 ระบบรักษาความปลอดภัยหลังบ้าน</h2>
-          <p className="text-xs text-amber-700 mt-1">กรุณากรอกรหัสผ่านผู้ดูแลระบบที่ตั้งค่าไว้ใน Vercel เพื่อใช้ในการบันทึกหรือลบข้อมูล</p>
-        </div>
-        <input
-          type="password"
-          value={adminPassword}
-          onChange={(e) => handlePasswordChange(e.target.value)}
-          className="border border-amber-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white min-w-[240px]"
-          placeholder="ป้อนรหัสผ่านแอดมิน..."
-          required
-        />
-      </div>
 
       <div className="bg-white shadow-md rounded-lg p-6 mb-8 border border-gray-200">
         <h2 className="text-xl font-semibold mb-4">เพิ่มคำถามใหม่</h2>

@@ -13,22 +13,10 @@ const supabase = createClient(
 const genAI = new GoogleGenerativeAI(cleanKey(process.env.GEMINI_API_KEY));
 const embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
-const ADMIN_PASSWORD = cleanKey(process.env.ADMIN_PASSWORD);
 
-function isAuthorized(req: Request): boolean {
-  const incomingPassword = cleanKey(req.headers.get('x-admin-password') || '');
-  return incomingPassword === ADMIN_PASSWORD;
-}
 
 export async function POST(req: Request) {
   try {
-    if (!isAuthorized(req)) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
     const { question, answer, image_url } = await req.json();
 
     if (!question || !answer) {
@@ -70,13 +58,6 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
-    if (!isAuthorized(req)) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { 
-        status: 401,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
